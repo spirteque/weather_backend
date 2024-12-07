@@ -2,11 +2,16 @@ import requests
 
 from ..constants import GENERATED_ENERGY_DECIMAL_PART_LENGTH, HOUR_IN_SECONDS
 from ..models import WeatherDay, WeatherForecast, WeatherForecastNotAvailableError, WeatherForecastService
+from ..utils import create_logger
 from .models import OpenMeteoDaily, OpenMeteoWeatherForecast
+
+logger = create_logger('OpenMeteoForecastService')
 
 
 class OpenMeteoForecastService(WeatherForecastService):
 	base_url: str
+	installation_power_kw: float
+	installation_efficiency: float
 
 	def __init__(self, base_url: str, installation_power_kw: float, installation_efficiency: float) -> None:
 		self.base_url = base_url
@@ -14,10 +19,19 @@ class OpenMeteoForecastService(WeatherForecastService):
 		self.installation_efficiency = installation_efficiency
 
 	def get_weather_forecast(self, latitude: float, longitude: float) -> WeatherForecast:
+		url = f'{self.base_url}/v1/forecast'
+		params = {
+			'latitude': latitude,
+			'longitude': longitude,
+			'daily': 'weather_code,temperature_2m_max,temperature_2m_min,sunshine_duration'
+		}
+
+		logger.info(f'Fetching {url} {params}')
+
 		try:
-			response = requests.get(
-				f'{self.base_url}/v1/forecast?latitude={latitude}&longitude={longitude}&daily=weather_code,temperature_2m_max,temperature_2m_min,sunshine_duration'
-			)
+			response = requests.get(url, params=params)
+
+			logger.info('Fetched forecast.')
 
 			open_meteo_forecast = OpenMeteoWeatherForecast(**response.json())
 
