@@ -5,15 +5,17 @@ import requests
 from .open_meteo.models import OpenMeteoWeatherForecast
 from .models import WeatherForecast, WeatherDay
 
+from .settings import settings
+
 app = FastAPI()
 
-base_url = 'https://api.open-meteo.com'
+base_url = settings.open_meteo_base_url
 
 
 @app.get('/')
 def get_forecast(
-		latitude: Annotated[float, Query(ge=-90, le=90)],
-		longitude: Annotated[float, Query(ge=-180, le=180)]
+		latitude: Annotated[float, Query(ge=settings.min_latitude, le=settings.max_latitude)],
+		longitude: Annotated[float, Query(ge=settings.min_longitude, le=settings.max_longitude)]
 ):
 	response_from_api = requests.get(
 		f'{base_url}/v1/forecast?latitude={latitude}&longitude={longitude}&daily=weather_code,temperature_2m_max,temperature_2m_min,sunshine_duration'
