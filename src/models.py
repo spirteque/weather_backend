@@ -34,3 +34,6 @@ class WeatherForecastService(ABC):
 	def get_weather_forecast(self, latitude: float, longitude: float) -> WeatherForecast:
 		pass
 
+
+class WeatherForecastNotAvailableError(Exception):
+	pass

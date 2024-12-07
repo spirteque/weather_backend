@@ -1,14 +1,22 @@
 from typing import Annotated
 
-from fastapi import Depends, FastAPI, Query
+from fastapi import Depends, FastAPI, Query, Request, status
+from fastapi.responses import JSONResponse
 
 from .dependencies import get_forecast_service
-from .models import WeatherForecast, WeatherForecastService
+from .models import WeatherForecast, WeatherForecastNotAvailableError, WeatherForecastService
 from .settings import settings
 
 app = FastAPI()
 
-base_url = settings.open_meteo_base_url
+
+@app.exception_handler(WeatherForecastNotAvailableError)
+async def weather_forecast_not_available_error_handler(
+		request: Request, error: WeatherForecastNotAvailableError
+) -> JSONResponse:
+	status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+
+	return JSONResponse(status_code=status_code, content={"id": error.__class__.__name__})
 
 
 @app.get('/')
