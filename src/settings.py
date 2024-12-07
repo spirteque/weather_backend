@@ -1,5 +1,6 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
 import pathlib
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 def create_dotenv_file_path() -> str:

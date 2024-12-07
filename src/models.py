@@ -1,3 +1,5 @@
+from abc import ABC, abstractmethod
+
 from pydantic import BaseModel
 
 
@@ -23,3 +25,12 @@ class WeatherForecast(BaseModel):
 	installation_power: float
 	installation_efficiency: float
 	days: list[WeatherDay]
+
+
+# Interface used for future forecast services. As long as services have same structure,
+# they can be exchanged independently without destroying the logic (e.g. when Open-Meteo suddenly becomes not free).
+class WeatherForecastService(ABC):
+	@abstractmethod
+	def get_weather_forecast(self, latitude: float, longitude: float) -> WeatherForecast:
+		pass
+

@@ -1,0 +1,24 @@
+line-length = 120
+
+
+[lint]
+select = ["E", "F", "W292", "W293", "N", "R", "I", "ANN"]
+ignore = ["F401", "F403", "F405", "N805", "RET501", "RET504"]
+# F401: Unused import
+#    - necessary to import models in database.py for side effects, even if not used directly.
+# F403: Unable to detect undefined names
+#   - `from ..conftest import *` is used in subdirectory conftest files,
+#       which is necessary for the correct functioning of pytest.
+# F405: `EXAMPLE` may be undefined, or defined from star imports
+#   - Strictly connected to the use of `*` in imports in subdirectory conftest files.
+# N805: First argument should be `self` in class methods
+#    - we use `cls` in Pydantic validators.
+# RET501: Do not explicitly `return None` in function if it is the only possible return value
+#    - `return None` is the desired behaviour is some cases, eg. delete functions.
+# RET504: Inconsistent return type
+#    - unnecessary assignment before return - in some cases, the assignment improves readability.
+
+[format]
+quote-style = "single"
+indent-style = "tab"
+docstring-code-format = true
