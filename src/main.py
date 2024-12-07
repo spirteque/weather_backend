@@ -36,7 +36,10 @@ def get_forecast(
 			weather_code=code,
 			temp_max=t_max,
 			temp_min=t_min,
-			sunshine_duration=sunshine
+			sunshine_duration=sunshine,
+			generated_energy=round(
+				settings.installation_power_kw * (sunshine / 3600) * settings.installation_efficiency, 4
+			)
 		))
 
 	forecast = WeatherForecast(
@@ -47,8 +50,11 @@ def get_forecast(
 		temp_max_unit=open_meteo_forecast.daily_units.temperature_2m_max,
 		temp_min_unit=open_meteo_forecast.daily_units.temperature_2m_min,
 		sunshine_duration_unit=open_meteo_forecast.daily_units.sunshine_duration,
+		generated_energy_unit='kWh',
+		installation_power_unit='kW',
+		installation_power=settings.installation_power_kw,
+		installation_efficiency=settings.installation_efficiency,
 		days=days
 	)
-	print(latitude, longitude)
 
 	return forecast
