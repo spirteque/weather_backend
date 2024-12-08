@@ -1,9 +1,32 @@
+from collections import Counter
+from statistics import mean
+
 import requests
 
-from ..constants import GENERATED_ENERGY_DECIMAL_PART_LENGTH, HOUR_IN_SECONDS
-from ..models import WeatherDay, WeatherForecast, WeatherForecastNotAvailableError, WeatherForecastService
+from ..constants import (
+	GENERATED_ENERGY_DECIMAL_PART_LENGTH,
+	HOUR_IN_SECONDS,
+	MEAN_PRESSURE_DECIMAL_PART_LENGTH,
+	MEAN_SUNSHINE_DURATION_DECIMAL_PART_LENGTH,
+)
+from ..models import (
+	WeatherDay,
+	WeatherForecast,
+	WeatherForecastNotAvailableError,
+	WeatherForecastService,
+	WeatherTypeEnum,
+	WeatherWeekSummary,
+	WeatherWeekSummaryNotAvailableError,
+	WeatherWeekSummaryService,
+)
 from ..utils import create_logger
-from .models import OpenMeteoDaily, OpenMeteoWeatherForecast
+from .models import (
+	OpenMeteoDaily,
+	OpenMeteoGroupedWeatherCodeEnum,
+	OpenMeteoWeatherCodeEnum,
+	OpenMeteoWeatherForecast,
+	OpenMeteoWeatherWeekSummary,
+)
 
 logger = create_logger('OpenMeteoForecastService')
 
@@ -68,6 +91,7 @@ class OpenMeteoForecastService(WeatherForecastService):
 			WeatherDay(
 				time=time,
 				weather_code=code,
+				weather_type=OpenMeteoGroupedWeatherCodeEnum.create_from_weather_code(code).to_weather_type(),
 				temp_max=t_max,
 				temp_min=t_min,
 				sunshine_duration=sunshine,
@@ -81,3 +105,77 @@ class OpenMeteoForecastService(WeatherForecastService):
 			self.installation_power_kw * (sunshine_duration / HOUR_IN_SECONDS) * self.installation_efficiency,
 			GENERATED_ENERGY_DECIMAL_PART_LENGTH
 		)
+
+
+class OpenMeteoWeekSummaryService(WeatherWeekSummaryService):
+	base_url: str
+
+	def __init__(self, base_url: str) -> None:
+		self.base_url = base_url
+
+	def get_week_summary(self, latitude: float, longitude: float) -> WeatherWeekSummary:
+		url = f'{self.base_url}/v1/forecast'
+		params = {
+			'latitude': latitude,
+			'longitude': longitude,
+			'hourly': 'pressure_msl',
+			'daily': 'weather_code,temperature_2m_max,temperature_2m_min,sunshine_duration'
+		}
+
+		logger.info(f'Fetching {url} {params}')
+
+		try:
+			response = requests.get(url, params=params)
+			logger.info('Fetched week summary.')
+
+			summary = OpenMeteoWeatherWeekSummary(**response.json())
+
+			result = WeatherWeekSummary(
+				latitude=summary.latitude,
+				longitude=summary.longitude,
+				hourly_time_unit=summary.hourly_units.time,
+				pressure_msl_unit=summary.hourly_units.pressure_msl,
+				daily_time_unit=summary.daily_units.time,
+				weather_code_unit=summary.daily_units.weather_code,
+				temp_max_unit=summary.daily_units.temperature_2m_max,
+				temp_min_unit=summary.daily_units.temperature_2m_min,
+				sunshine_duration_unit=summary.daily_units.sunshine_duration,
+				mean_pressure=OpenMeteoWeekSummaryService._get_mean_pressure(summary.hourly.pressure_msl),
+				mean_sunshine_duration=OpenMeteoWeekSummaryService._get_mean_sunshine_duration(summary.daily.sunshine_duration),
+				temp_max_week=OpenMeteoWeekSummaryService._get_max_temp(summary.daily.temperature_2m_max),
+				temp_min_week=OpenMeteoWeekSummaryService._get_min_temp(summary.daily.temperature_2m_min),
+				weather_types=OpenMeteoWeekSummaryService._get_weather_types(summary.daily.weather_code)
+			)
+
+			return result
+
+		except Exception as e:
+			raise WeatherWeekSummaryNotAvailableError(e)
+
+	@staticmethod
+	def _get_mean_pressure(pressures: list[float]) -> float:
+		return round(mean(pressures), MEAN_PRESSURE_DECIMAL_PART_LENGTH)
+
+	@staticmethod
+	def _get_mean_sunshine_duration(sunshine_durations: list[float]) -> float:
+		return round(mean(sunshine_durations), MEAN_SUNSHINE_DURATION_DECIMAL_PART_LENGTH)
+
+	@staticmethod
+	def _get_max_temp(max_temps: list[float]) -> float:
+		return max(max_temps)
+
+	@staticmethod
+	def _get_min_temp(min_temps: list[float]) -> float:
+		return max(min_temps)
+
+	@staticmethod
+	def _get_weather_types(weather_codes: list[OpenMeteoWeatherCodeEnum]) -> list[WeatherTypeEnum]:
+		grouped = []
+
+		for code in weather_codes:
+			grouped.append(OpenMeteoGroupedWeatherCodeEnum.create_from_weather_code(code))
+
+		counter = Counter(grouped)
+		max_count = max(counter.values())
+
+		return [k.to_weather_type() for k, c in counter.items() if c == max_count]
