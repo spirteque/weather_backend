@@ -1,4 +1,5 @@
 from collections import Counter
+from datetime import datetime
 from statistics import mean
 
 import requests
@@ -10,6 +11,8 @@ from ..constants import (
 	MEAN_SUNSHINE_DURATION_DECIMAL_PART_LENGTH,
 )
 from ..models import (
+	CacheService,
+	DayEnum,
 	WeatherDay,
 	WeatherForecast,
 	WeatherForecastNotAvailableError,
@@ -17,7 +20,7 @@ from ..models import (
 	WeatherTypeEnum,
 	WeatherWeekSummary,
 	WeatherWeekSummaryNotAvailableError,
-	WeatherWeekSummaryService, CacheService,
+	WeatherWeekSummaryService,
 )
 from ..utils import create_logger
 from .models import (
@@ -109,6 +112,7 @@ class OpenMeteoForecastService(WeatherForecastService):
 		return [
 			WeatherDay(
 				time=time,
+				day=OpenMeteoForecastService._get_day(time),
 				weather_code=code,
 				weather_type=OpenMeteoGroupedWeatherCodeEnum.create_from_weather_code(code).to_weather_type(),
 				temp_max=t_max,
@@ -118,6 +122,10 @@ class OpenMeteoForecastService(WeatherForecastService):
 			)
 			for (time, code, t_max, t_min, sunshine) in grouped_days
 		]
+
+	@staticmethod
+	def _get_day(time: str) -> DayEnum:
+		return DayEnum.get_by_index(datetime.strptime(time, "%Y-%m-%d").weekday())
 
 	def _calculate_energy(self, sunshine_duration: float) -> float:
 		return round(

@@ -21,8 +21,27 @@ class WeatherTypeEnum(Enum):
 	THUNDERSTORM_WITH_HAIL = 'THUNDERSTORM_WITH_HAIL'
 
 
+class DayEnum(Enum):
+	MONDAY = "MONDAY"
+	TUESDAY = "TUESDAY"
+	WEDNESDAY = "WEDNESDAY"
+	THURSDAY = "THURSDAY"
+	FRIDAY = "FRIDAY"
+	SATURDAY = "SATURDAY"
+	SUNDAY = "SUNDAY"
+
+	@staticmethod
+	def get_by_index(i: int) -> 'DayEnum':
+		for (day_index, day) in enumerate(DayEnum.__members__.keys()):
+			if day_index == i:
+				return day
+
+		raise Exception("Couldn't resolve day!")
+
+
 class WeatherDay(BaseModel):
 	time: str
+	day: DayEnum
 	weather_code: int
 	weather_type: WeatherTypeEnum
 	temp_max: float
@@ -81,11 +100,11 @@ class WeatherWeekSummaryService(ABC):
 
 class CacheService(ABC):
 	@abstractmethod
-	def add_cache(self, cache_key: str, cache_value: Any) -> None:
+	def add_cache(self, cache_key: str, cache_value: BaseModel) -> None:
 		pass
 
 	@abstractmethod
-	def get_cache(self, cache_key: str) -> Any:
+	def get_cache(self, cache_key: str) -> BaseModel | None:
 		pass
 
 

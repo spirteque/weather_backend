@@ -1,6 +1,6 @@
 from fastapi import Depends
 
-from src.models import WeatherForecastService, WeatherWeekSummaryService, CacheService
+from src.models import CacheService, WeatherForecastService, WeatherWeekSummaryService
 from src.open_meteo.services import OpenMeteoForecastService, OpenMeteoWeekSummaryService
 from src.services import DailyCacheService
 from src.settings import settings
