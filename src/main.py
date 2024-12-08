@@ -46,7 +46,7 @@ async def log_request(request: Request, call_next: Callable) -> Response:
 	return await call_next(request)
 
 
-@app.get('/')
+@app.get('/api/v1/week_forecast')
 def get_forecast(
 		latitude: Annotated[float, Query(ge=settings.min_latitude, le=settings.max_latitude)],
 		longitude: Annotated[float, Query(ge=settings.min_longitude, le=settings.max_longitude)],
@@ -55,7 +55,7 @@ def get_forecast(
 	return forecast_service.get_weather_forecast(latitude, longitude)
 
 
-@app.get('/week_summary')
+@app.get('/api/v1/week_summary')
 def get_week_summary(
 		latitude: Annotated[float, Query(ge=settings.min_latitude, le=settings.max_latitude)],
 		longitude: Annotated[float, Query(ge=settings.min_longitude, le=settings.max_longitude)],

@@ -17,7 +17,7 @@ from ..models import (
 	WeatherTypeEnum,
 	WeatherWeekSummary,
 	WeatherWeekSummaryNotAvailableError,
-	WeatherWeekSummaryService,
+	WeatherWeekSummaryService, CacheService,
 )
 from ..utils import create_logger
 from .models import (
@@ -35,11 +35,23 @@ class OpenMeteoForecastService(WeatherForecastService):
 	base_url: str
 	installation_power_kw: float
 	installation_efficiency: float
+	cache_service: CacheService
 
-	def __init__(self, base_url: str, installation_power_kw: float, installation_efficiency: float) -> None:
+	def __init__(
+			self,
+			base_url: str,
+			installation_power_kw: float,
+			installation_efficiency: float,
+			cache_service: CacheService
+	) -> None:
 		self.base_url = base_url
 		self.installation_power_kw = installation_power_kw
 		self.installation_efficiency = installation_efficiency
+		self.cache_service = cache_service
+
+	@staticmethod
+	def _create_cash_key(latitude: float, longitude: float) -> str:
+		return f'forecast_{latitude}_{longitude}'
 
 	def get_weather_forecast(self, latitude: float, longitude: float) -> WeatherForecast:
 		url = f'{self.base_url}/v1/forecast'
@@ -49,9 +61,14 @@ class OpenMeteoForecastService(WeatherForecastService):
 			'daily': 'weather_code,temperature_2m_max,temperature_2m_min,sunshine_duration'
 		}
 
-		logger.info(f'Fetching {url} {params}')
-
 		try:
+			cache_key = OpenMeteoForecastService._create_cash_key(latitude, longitude)
+
+			if cached_forecast := self.cache_service.get_cache(cache_key=cache_key):
+				return cached_forecast
+
+			logger.info(f'Fetching {url} {params}')
+
 			response = requests.get(url, params=params)
 
 			logger.info('Fetched forecast.')
@@ -72,6 +89,8 @@ class OpenMeteoForecastService(WeatherForecastService):
 				installation_efficiency=self.installation_efficiency,
 				days=self._get_days(open_meteo_forecast.daily)
 			)
+
+			self.cache_service.add_cache(cache_key=cache_key, cache_value=forecast)
 
 			return forecast
 
@@ -109,9 +128,15 @@ class OpenMeteoForecastService(WeatherForecastService):
 
 class OpenMeteoWeekSummaryService(WeatherWeekSummaryService):
 	base_url: str
+	cache_service: CacheService
 
-	def __init__(self, base_url: str) -> None:
+	def __init__(self, base_url: str, cache_service: CacheService) -> None:
 		self.base_url = base_url
+		self.cache_service = cache_service
+
+	@staticmethod
+	def _create_cash_key(latitude: float, longitude: float) -> str:
+		return f'summary_{latitude}_{longitude}'
 
 	def get_week_summary(self, latitude: float, longitude: float) -> WeatherWeekSummary:
 		url = f'{self.base_url}/v1/forecast'
@@ -122,32 +147,41 @@ class OpenMeteoWeekSummaryService(WeatherWeekSummaryService):
 			'daily': 'weather_code,temperature_2m_max,temperature_2m_min,sunshine_duration'
 		}
 
-		logger.info(f'Fetching {url} {params}')
-
 		try:
+			cache_key = OpenMeteoWeekSummaryService._create_cash_key(latitude, longitude)
+
+			if cached_summary := self.cache_service.get_cache(cache_key=cache_key):
+				return cached_summary
+
+			logger.info(f'Fetching {url} {params}')
+
 			response = requests.get(url, params=params)
 			logger.info('Fetched week summary.')
 
-			summary = OpenMeteoWeatherWeekSummary(**response.json())
+			open_meteo_summary = OpenMeteoWeatherWeekSummary(**response.json())
 
-			result = WeatherWeekSummary(
-				latitude=summary.latitude,
-				longitude=summary.longitude,
-				hourly_time_unit=summary.hourly_units.time,
-				pressure_msl_unit=summary.hourly_units.pressure_msl,
-				daily_time_unit=summary.daily_units.time,
-				weather_code_unit=summary.daily_units.weather_code,
-				temp_max_unit=summary.daily_units.temperature_2m_max,
-				temp_min_unit=summary.daily_units.temperature_2m_min,
-				sunshine_duration_unit=summary.daily_units.sunshine_duration,
-				mean_pressure=OpenMeteoWeekSummaryService._get_mean_pressure(summary.hourly.pressure_msl),
-				mean_sunshine_duration=OpenMeteoWeekSummaryService._get_mean_sunshine_duration(summary.daily.sunshine_duration),
-				temp_max_week=OpenMeteoWeekSummaryService._get_max_temp(summary.daily.temperature_2m_max),
-				temp_min_week=OpenMeteoWeekSummaryService._get_min_temp(summary.daily.temperature_2m_min),
-				weather_types=OpenMeteoWeekSummaryService._get_weather_types(summary.daily.weather_code)
+			summary = WeatherWeekSummary(
+				latitude=open_meteo_summary.latitude,
+				longitude=open_meteo_summary.longitude,
+				hourly_time_unit=open_meteo_summary.hourly_units.time,
+				pressure_msl_unit=open_meteo_summary.hourly_units.pressure_msl,
+				daily_time_unit=open_meteo_summary.daily_units.time,
+				weather_code_unit=open_meteo_summary.daily_units.weather_code,
+				temp_max_unit=open_meteo_summary.daily_units.temperature_2m_max,
+				temp_min_unit=open_meteo_summary.daily_units.temperature_2m_min,
+				sunshine_duration_unit=open_meteo_summary.daily_units.sunshine_duration,
+				mean_pressure=OpenMeteoWeekSummaryService._get_mean_pressure(open_meteo_summary.hourly.pressure_msl),
+				mean_sunshine_duration=OpenMeteoWeekSummaryService._get_mean_sunshine_duration(
+					open_meteo_summary.daily.sunshine_duration
+				),
+				temp_max_week=OpenMeteoWeekSummaryService._get_max_temp(open_meteo_summary.daily.temperature_2m_max),
+				temp_min_week=OpenMeteoWeekSummaryService._get_min_temp(open_meteo_summary.daily.temperature_2m_min),
+				weather_types=OpenMeteoWeekSummaryService._get_weather_types(open_meteo_summary.daily.weather_code)
 			)
 
-			return result
+			self.cache_service.add_cache(cache_key=cache_key, cache_value=summary)
+
+			return summary
 
 		except Exception as e:
 			raise WeatherWeekSummaryNotAvailableError(e)

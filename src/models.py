@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import Enum
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -75,6 +76,16 @@ class WeatherForecastService(ABC):
 class WeatherWeekSummaryService(ABC):
 	@abstractmethod
 	def get_week_summary(self, latitude: float, longitude: float) -> WeatherWeekSummary:
+		pass
+
+
+class CacheService(ABC):
+	@abstractmethod
+	def add_cache(self, cache_key: str, cache_value: Any) -> None:
+		pass
+
+	@abstractmethod
+	def get_cache(self, cache_key: str) -> Any:
 		pass
 
 
