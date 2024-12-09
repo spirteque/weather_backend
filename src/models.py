@@ -31,7 +31,7 @@ class DayEnum(Enum):
 	SUNDAY = "SUNDAY"
 
 	@staticmethod
-	def get_by_index(i: int) -> 'DayEnum':
+	def get_by_index(i: int) -> str:
 		for (day_index, day) in enumerate(DayEnum.__members__.keys()):
 			if day_index == i:
 				return day

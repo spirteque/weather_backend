@@ -91,7 +91,7 @@ class OpenMeteoGroupedWeatherCodeEnum(Enum):
         for member in OpenMeteoGroupedWeatherCodeEnum.__members__.values():
             if code in member.value:
                 return member
-        raise Exception(f'Given code is not supported {code}')
+        raise Exception(f'Given code is not supported: {code}')
 
     def to_weather_type(self) -> WeatherTypeEnum:
         match self.name:
@@ -121,6 +121,8 @@ class OpenMeteoGroupedWeatherCodeEnum(Enum):
                 return WeatherTypeEnum.THUNDERSTORM
             case 'THUNDERSTORM_WITH_HAIL':
                 return WeatherTypeEnum.THUNDERSTORM_WITH_HAIL
+            case _:
+                raise ValueError(f'Unexpected group name: {self.name}')
 
 
 class OpenMeteoHourlyUnits(BaseModel):

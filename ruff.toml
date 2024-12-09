@@ -3,7 +3,9 @@ line-length = 120
 
 [lint]
 select = ["E", "F", "W292", "W293", "N", "R", "I", "ANN"]
-ignore = ["F401", "F403", "F405", "N805", "RET501", "RET504"]
+ignore = ["ANN002", "ANN003", "F401", "F403", "F405", "N805", "RET501", "RET504"]
+# ANN002: Missing type annotation for `*args`
+# ANN003: Missing type annotation for `**kwargs`
 # F401: Unused import
 #    - necessary to import models in database.py for side effects, even if not used directly.
 # F403: Unable to detect undefined names

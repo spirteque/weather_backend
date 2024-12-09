@@ -164,6 +164,7 @@ class OpenMeteoWeekSummaryService(WeatherWeekSummaryService):
 			logger.info(f'Fetching {url} {params}')
 
 			response = requests.get(url, params=params)
+			response.raise_for_status()
 			logger.info('Fetched week summary.')
 
 			open_meteo_summary = OpenMeteoWeatherWeekSummary(**response.json())
@@ -208,10 +209,13 @@ class OpenMeteoWeekSummaryService(WeatherWeekSummaryService):
 
 	@staticmethod
 	def _get_min_temp(min_temps: list[float]) -> float:
-		return max(min_temps)
+		return min(min_temps)
 
 	@staticmethod
 	def _get_weather_types(weather_codes: list[OpenMeteoWeatherCodeEnum]) -> list[WeatherTypeEnum]:
+		if not weather_codes:
+			raise ValueError('Given list should not be empty.')
+
 		grouped = []
 
 		for code in weather_codes:
