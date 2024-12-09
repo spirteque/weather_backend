@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 def create_dotenv_file_path() -> str:
 	path = str(pathlib.Path().resolve())
-	project_name = 'backend_weather'
+	project_name = 'weather_backend'
 
 	if not path.endswith(project_name):
 		separate_path = path.split(project_name, 1)
