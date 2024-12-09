@@ -1,3 +1,4 @@
+import os
 import pathlib
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -23,7 +24,9 @@ class Settings(BaseSettings):
 	installation_power_kw: float
 	installation_efficiency: float
 
-	model_config = SettingsConfigDict(env_file=create_dotenv_file_path())
+	model_config = SettingsConfigDict(
+		env_file=create_dotenv_file_path() if not bool(os.getenv("PRODUCTION", 0)) else None
+	)
 
 
 settings = Settings()
