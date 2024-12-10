@@ -52,6 +52,7 @@ class OpenMeteoForecastService(WeatherForecastService):
 		self.installation_efficiency = installation_efficiency
 		self.cache_service = cache_service
 
+	# Support method for creating unique cash key.
 	@staticmethod
 	def _create_cash_key(latitude: float, longitude: float) -> str:
 		return f'forecast_{latitude}_{longitude}'
@@ -67,6 +68,7 @@ class OpenMeteoForecastService(WeatherForecastService):
 		try:
 			cache_key = OpenMeteoForecastService._create_cash_key(latitude, longitude)
 
+			# Return cached value if exists.
 			if cached_forecast := self.cache_service.get_cache(cache_key=cache_key):
 				return cached_forecast
 
@@ -93,14 +95,18 @@ class OpenMeteoForecastService(WeatherForecastService):
 				days=self._get_days(open_meteo_forecast.daily)
 			)
 
+			# Create new cache entry for current forecast.
 			self.cache_service.add_cache(cache_key=cache_key, cache_value=forecast)
 
 			return forecast
 
+		# Catch any exception (e.g. from API or during parsing) and rethrow it.
 		except Exception as e:
 			raise WeatherForecastNotAvailableError(e)
 
+	# Group and map days from Open Meteo response to our format.
 	def _get_days(self, daily: OpenMeteoDaily) -> list[WeatherDay]:
+		# Open Meteo returns info per day in separated lists where index points to each day.
 		grouped_days = zip(
 			daily.time,
 			daily.weather_code,
@@ -125,6 +131,7 @@ class OpenMeteoForecastService(WeatherForecastService):
 
 	@staticmethod
 	def _get_day(time: str) -> DayEnum:
+		# Parse time to datetime and get week day (index) based on which we return day as string key.
 		return DayEnum.get_by_index(datetime.strptime(time, "%Y-%m-%d").weekday())
 
 	def _calculate_energy(self, sunshine_duration: float) -> float:
@@ -142,6 +149,7 @@ class OpenMeteoWeekSummaryService(WeatherWeekSummaryService):
 		self.base_url = base_url
 		self.cache_service = cache_service
 
+	# Support method for creating unique cash key.
 	@staticmethod
 	def _create_cash_key(latitude: float, longitude: float) -> str:
 		return f'summary_{latitude}_{longitude}'
@@ -158,13 +166,13 @@ class OpenMeteoWeekSummaryService(WeatherWeekSummaryService):
 		try:
 			cache_key = OpenMeteoWeekSummaryService._create_cash_key(latitude, longitude)
 
+			# Return cached value if exists.
 			if cached_summary := self.cache_service.get_cache(cache_key=cache_key):
 				return cached_summary
 
 			logger.info(f'Fetching {url} {params}')
 
 			response = requests.get(url, params=params)
-			response.raise_for_status()
 			logger.info('Fetched week summary.')
 
 			open_meteo_summary = OpenMeteoWeatherWeekSummary(**response.json())
@@ -188,10 +196,12 @@ class OpenMeteoWeekSummaryService(WeatherWeekSummaryService):
 				weather_types=OpenMeteoWeekSummaryService._get_weather_types(open_meteo_summary.daily.weather_code)
 			)
 
+			# Create new cache entry for week summary.
 			self.cache_service.add_cache(cache_key=cache_key, cache_value=summary)
 
 			return summary
 
+		# Catch any exception (e.g. from API or during parsing) and rethrow it.
 		except Exception as e:
 			raise WeatherWeekSummaryNotAvailableError(e)
 
@@ -218,10 +228,12 @@ class OpenMeteoWeekSummaryService(WeatherWeekSummaryService):
 
 		grouped = []
 
+		# Mapping weather codes from Open Meteo to weather groups.
 		for code in weather_codes:
 			grouped.append(OpenMeteoGroupedWeatherCodeEnum.create_from_weather_code(code))
 
 		counter = Counter(grouped)
 		max_count = max(counter.values())
 
+		# Return list of most common weather types as a string keys.
 		return [k.to_weather_type() for k, c in counter.items() if c == max_count]

@@ -5,6 +5,7 @@ from pydantic import BaseModel, Extra
 from src.models import WeatherTypeEnum
 
 
+# Open Meteo weather codes mapping.
 class OpenMeteoWeatherCodeEnum(Enum):
     CLEAR_SKY = 0
     MAINLY_CLEAR = 1
@@ -36,6 +37,7 @@ class OpenMeteoWeatherCodeEnum(Enum):
     THUNDERSTORM_WITH_HEAVY_HAIL = 99
 
 
+# Mapping weather codes to more general weather groups.
 class OpenMeteoGroupedWeatherCodeEnum(Enum):
     CLEAR_SKY = (OpenMeteoWeatherCodeEnum.CLEAR_SKY,)
     CLOUDY = (
@@ -88,12 +90,15 @@ class OpenMeteoGroupedWeatherCodeEnum(Enum):
 
     @staticmethod
     def create_from_weather_code(code: OpenMeteoWeatherCodeEnum) -> 'OpenMeteoGroupedWeatherCodeEnum':
+        # Iterate through weather groups values to match given weather code to its group.
         for member in OpenMeteoGroupedWeatherCodeEnum.__members__.values():
             if code in member.value:
                 return member
+
         raise Exception(f'Given code is not supported: {code}')
 
     def to_weather_type(self) -> WeatherTypeEnum:
+        # Convert weather group to weather type.
         match self.name:
             case 'CLEAR_SKY':
                 return WeatherTypeEnum.CLEAR_SKY
@@ -125,6 +130,7 @@ class OpenMeteoGroupedWeatherCodeEnum(Enum):
                 raise ValueError(f'Unexpected group name: {self.name}')
 
 
+# Models representing Open Meteo API responses:
 class OpenMeteoHourlyUnits(BaseModel):
     time: str
     pressure_msl: str
@@ -157,6 +163,8 @@ class OpenMeteoWeatherForecast(BaseModel):
     daily_units: OpenMeteoDailyUnits
     daily: OpenMeteoDaily
 
+    # Ignores additional keys in Open Meteo response,
+    # that are not part of the model representation.
     class Config:
         extra = Extra.ignore
 
@@ -169,5 +177,7 @@ class OpenMeteoWeatherWeekSummary(BaseModel):
     daily_units: OpenMeteoDailyUnits
     daily: OpenMeteoDaily
 
+    # Ignores additional keys in Open Meteo response,
+    # that are not part of the model representation.
     class Config:
         extra = Extra.ignore

@@ -4,6 +4,10 @@
 
 The application displays a 7-day weather forecast using the external API [Open-Meteo](https://open-meteo.com). Additionally, it calculates the estimated energy production from a photovoltaic installation based on the provided weather data.
 
+Integrated React frontend is available [here](https://github.com/spirteque/weather_frontend.git).
+
+The application is publicly accessible. Visit: [weather.spirteque.com](www.weather.spirteque.com).
+
 ## Features
 
 ### Endpoint 1: `/api/v1/week_forecast` - 7-Day Weather Forecast

@@ -10,16 +10,26 @@ logger = create_logger('DailyCacheService')
 
 
 class DailyCacheService(CacheService):
+	# Cache will look like this:
+	# {
+	# 	['2024-12-09']: {
+	# 		['key']: {...},
+	# 		['key2']: {...},
+	# 	}
+	# }
 	cache: dict[str, dict[str, Any]] = {}
 
 	def add_cache(self, cache_key: str, cache_value: BaseModel) -> None:
 		today_date = datetime.now().date()
 		self._delete_old_cache(today_date)
 
+		# Create new date key in cache if not exists.
 		if self.cache.get(str(today_date)) is None:
 			self.cache[str(today_date)] = {}
 
+		# Save data in cache by date key and individual key.
 		self.cache[str(today_date)][cache_key] = cache_value
+
 		logger.info(f'Added new cache for {today_date} with key {cache_key}.')
 
 	def get_cache(self, cache_key: str) -> BaseModel | None:
@@ -41,6 +51,7 @@ class DailyCacheService(CacheService):
 		for date in dates:
 			formatted_date = datetime.strptime(date, '%Y-%m-%d').date()
 
+			# Looking for old dates in cache.
 			if formatted_date < today_date:
 				keys_to_remove.append(date)
 

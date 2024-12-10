@@ -5,6 +5,7 @@ from typing import Any
 from pydantic import BaseModel
 
 
+# WeatherTypeEnum provides weather code string representation (e.g. from Open Meteo API)
 class WeatherTypeEnum(Enum):
 	CLEAR_SKY = 'CLEAR_SKY'
 	CLOUDY = 'CLOUDY'
@@ -21,6 +22,7 @@ class WeatherTypeEnum(Enum):
 	THUNDERSTORM_WITH_HAIL = 'THUNDERSTORM_WITH_HAIL'
 
 
+# DayEnum is used to map value to string day representation.
 class DayEnum(Enum):
 	MONDAY = "MONDAY"
 	TUESDAY = "TUESDAY"
@@ -39,6 +41,7 @@ class DayEnum(Enum):
 		raise Exception("Couldn't resolve day!")
 
 
+# Models representing returned data:
 class WeatherDay(BaseModel):
 	time: str
 	day: DayEnum
@@ -98,6 +101,7 @@ class WeatherWeekSummaryService(ABC):
 		pass
 
 
+# Interface used for cache functionality, e.g. Redis can be introduced without destroying the logic.
 class CacheService(ABC):
 	@abstractmethod
 	def add_cache(self, cache_key: str, cache_value: BaseModel) -> None:
@@ -108,6 +112,7 @@ class CacheService(ABC):
 		pass
 
 
+# Exception classes:
 class WeatherForecastNotAvailableError(Exception):
 	pass
 
